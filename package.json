@@ -1,0 +1,17 @@
+{
+  "name": "drowpal",
+  "version": "1.0.0",
+  "description": "AI character support web app for self-reflection",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.1",
+    "ejs": "^3.1.10",
+    "express": "^5.2.1",
+    "multer": "^2.2.0",
+    "sqlite3": "^6.0.1"
+  }
+}

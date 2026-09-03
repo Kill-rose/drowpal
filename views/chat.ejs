@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drowpal | チャット</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script>(function () { var t = localStorage.getItem('drowpal-theme'); if (t) { document.documentElement.dataset.theme = t; } })();</script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="main-panel">
+        <div class="chat-panel">
+          <div class="chat-header">
+            <h2><%= character?.name || 'キャラクター' %>との会話</h2>
+            <p><%= character?.greeting || 'こんにちは' %></p>
+          </div>
+          <div id="chat-output" class="chat-output">
+            <% history.forEach((item) => { %>
+              <div class="chat-bubble">あなた: <%= item.detail %></div>
+            <% }) %>
+          </div>
+          <form id="chat-form" class="chat-form">
+            <textarea id="message" name="message" rows="4" placeholder="今日の気持ちや練習のことを話してみて"></textarea>
+            <button type="submit">送信</button>
+          </form>
+        </div>
+      </section>
+
+      <aside class="sidebar">
+        <section class="sidebar-menu panel">
+          <h2>メニュー</h2>
+          <p class="small">（切り替え）</p>
+          <div class="menu-list">
+            <a href="/reflection">振り返り</a>
+            <a href="/calendar">カレンダー</a>
+            <a href="/illustrations">イラスト</a>
+            <a href="/character">パル</a>
+          </div>
+        </section>
+
+        <section class="sidebar-character panel">
+          <div class="character-doll">
+            <div class="character-head">
+              <div class="eye"></div>
+              <div class="eye"></div>
+              <div class="mouth"></div>
+            </div>
+            <div class="character-body"></div>
+          </div>
+          <div class="character-label"><%= character?.name || 'AIキャラクター' %></div>
+        </section>
+      </aside>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

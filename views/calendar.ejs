@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drowpal | カレンダー</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script>(function () { var t = localStorage.getItem('drowpal-theme'); if (t) { document.documentElement.dataset.theme = t; } })();</script>
+  </head>
+  <body>
+    <nav>
+      <div class="nav-inner">
+        <strong>Drowpal</strong>
+        <div class="links">
+          <a href="/">ホーム</a>
+          <a href="/chat">チャット</a>
+          <a href="/reflection">振り返り</a>
+          <a href="/calendar">カレンダー</a>
+          <a href="/character">パル</a>
+          <a href="/illustrations">イラスト</a>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <section class="hero">
+        <h1><%= year %>年 <%= month + 1 %>月の振り返り</h1>
+        <p>記録がある日を見て、どのくらい続いているか確認できます。</p>
+      </section>
+
+      <section class="panel">
+        <div class="calendar-grid">
+          <% ['日','月','火','水','木','金','土'].forEach((dow) => { %>
+            <div class="calendar-day"><strong><%= dow %></strong></div>
+          <% }) %>
+          <% monthData.days.forEach((day) => { %>
+            <div class="calendar-day">
+              <div class="date"><%= day.getDate() %></div>
+              <% const key = day.toISOString().slice(0, 10); %>
+              <% if (calendar[key]) { %>
+                <a href="/?view=reflection&illustrationId=<%= calendar[key].id %>" class="calendar-illustration">
+                  <img src="/uploads/<%= calendar[key].file_name %>" alt="<%= calendar[key].title %>" />
+                </a>
+              <% } %>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>その月の記録</h2>
+        <% if (illustrations.length === 0) { %>
+          <p class="small">この月のイラストはまだありません。</p>
+        <% } else { %>
+          <% illustrations.forEach((item) => { %>
+            <div class="card">
+              <strong><%= item.illustration_date %>・<%= item.title %></strong>
+              <a href="/?view=reflection&illustrationId=<%= item.id %>">振り返る</a>
+            </div>
+          <% }) %>
+        <% } %>
+      </section>
+    </main>
+  </body>
+</html>

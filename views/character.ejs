@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drowpal | キャラクター設定</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script>(function () { var t = localStorage.getItem('drowpal-theme'); if (t) { document.documentElement.dataset.theme = t; } })();</script>
+  </head>
+  <body>
+    <nav>
+      <div class="nav-inner">
+        <strong>Drowpal</strong>
+        <div class="links">
+          <a href="/">ホーム</a>
+          <a href="/chat">チャット</a>
+          <a href="/reflection">振り返り</a>
+          <a href="/calendar">カレンダー</a>
+          <a href="/character">パル</a>
+          <a href="/illustrations">イラスト</a>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <section class="hero">
+        <h1>キャラクター設定</h1>
+        <p>名前や振る舞いを選んで、あなたに合うAIガイドにできます。</p>
+      </section>
+
+      <section class="panel">
+        <form method="post" action="/character" enctype="multipart/form-data">
+          <label>名前</label>
+          <input type="text" name="name" maxlength="10" value="<%= character?.name || '' %>" required />
+          <label>性格</label>
+          <input type="text" name="personality" list="personality-presets" maxlength="100" value="<%= character?.personality || '' %>" required />
+          <label>口調</label>
+          <input type="text" name="style" list="style-presets" maxlength="100" value="<%= character?.style || '' %>" required />
+          <label>ユーザーの呼び方</label>
+          <input type="text" name="userName" maxlength="10" value="<%= character?.user_name || '' %>" required />
+          <label>ユーザーへの接し方</label>
+          <input type="text" name="interactionStyle" list="interaction-presets" maxlength="100" value="<%= character?.interaction_style || '' %>" required />
+          <label>他プロフィール</label>
+          <textarea name="profile" rows="3" maxlength="1000"><%= character?.profile || '' %></textarea>
+          <label>出力例（最大9件・各300文字まで、任意）</label>
+          <% const exampleValues = character?.examplesList || []; %>
+          <% for (let i = 0; i < 9; i += 1) { %><textarea name="examples" rows="2" maxlength="300" placeholder="出力例 <%= i + 1 %>"><%= exampleValues[i] || '' %></textarea><% } %>
+          <fieldset class="pal-images-fieldset">
+            <legend>パル画像</legend>
+            <p class="small">通常画像だけでも動作します。未登録の表情は通常画像を表示します。</p>
+            <div class="pal-image-grid">
+              <% characterImages.forEach((image) => { %>
+                <label class="pal-image-option"><span><%= image.label %></span><img src="<%= image.src %>" alt="<%= image.label %>のプレビュー" /><input type="file" name="palImage_<%= image.key %>" accept="image/png" /></label>
+              <% }); %>
+            </div>
+          </fieldset>
+          <datalist id="personality-presets"><% ['テンション高め、絵文字・擬音多用、褒め言葉もリアクションも大きい', '落ち着いた口調、感情表現は控えめ、簡潔に要点を伝える', 'どこか抜けている、たまに的外れなコメントを挟む、親しみやすさ重視', '真面目で丁寧、論理的にアドバイスする、少し堅め', '距離感が近い、ユーザーに頼るような発言も混じる、可愛らしい口調'].forEach((preset) => { %><option value="<%= preset %>"></option><% }); %></datalist>
+          <datalist id="style-presets"><% ['「～だ」「～だろ」の男性標準口調', '「～よ」「～ね」の女性標準口調', '「～だよ」「～だね」の落ち着いた柔和口調', '「～だよ」「～だね」の元気で幼い子供口調', '敬語口調'].forEach((preset) => { %><option value="<%= preset %>"></option><% }); %></datalist>
+          <datalist id="interaction-presets"><% ['問題点を率直に指摘、改善点を具体的かつ妥協なく伝える。褒めは最小限', 'まず良い点を見つけて褒める、指摘はやわらかい言い回しで包む', '感情を交えず、事実ベースで淡々と分析・助言する', '「一緒に頑張ろう」というスタンス、共感重視、指摘より寄り添いが多い', '基本的に褒めて自己肯定感を上げる方向、指摘はごく控えめか任意'].forEach((preset) => { %><option value="<%= preset %>"></option><% }); %></datalist>
+          <div style="margin-top: 0.75rem;"><button type="submit">保存</button></div>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

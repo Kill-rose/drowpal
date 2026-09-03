@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drowpal | イラスト</title>
+    <link rel="stylesheet" href="/style.css" />
+    <script>(function () { var t = localStorage.getItem('drowpal-theme'); if (t) { document.documentElement.dataset.theme = t; } })();</script>
+  </head>
+  <body>
+    <nav>
+      <div class="nav-inner">
+        <strong>Drowpal</strong>
+        <div class="links">
+          <a href="/">ホーム</a>
+          <a href="/chat">チャット</a>
+          <a href="/reflection">振り返り</a>
+          <a href="/calendar">カレンダー</a>
+          <a href="/character">パル</a>
+          <a href="/illustrations">イラスト</a>
+        </div>
+      </div>
+    </nav>
+
+    <main>
+      <section class="hero">
+        <h1>イラストをアップロードする</h1>
+        <p>描いた絵を残して、進捗や感想と一緒に見返せるようにします。</p>
+      </section>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>アップロード</h2>
+          <form method="post" action="/illustrations" enctype="multipart/form-data">
+            <label>タイトル</label>
+            <input type="text" name="title" placeholder="今日の一枚" />
+            <label>日付</label>
+            <input type="date" name="illustrationDate" value="<%= today %>" required />
+            <label>種類</label>
+            <select name="illustrationType">
+              <option value="練習">練習</option>
+              <option value="落書き">落書き</option>
+              <option value="本気">本気</option>
+            </select>
+            <label>画像</label>
+            <input type="file" name="image" accept="image/*" required />
+            <div style="margin-top: 0.75rem;"><button type="submit">保存</button></div>
+          </form>
+        </section>
+
+        <section class="panel">
+          <h2>アップロード済み</h2>
+          <% if (illustrations.length === 0) { %>
+            <p class="small">まだ画像がありません。</p>
+          <% } else { %>
+            <% illustrations.forEach((item) => { %>
+              <div class="card">
+                <img class="uploaded" src="/uploads/<%= item.file_name %>" alt="<%= item.title %>" />
+                <form method="post" action="/illustrations/<%= item.id %>">
+                  <label>タイトル<input type="text" name="title" value="<%= item.title %>" required /></label>
+                  <label>日付<input type="date" name="illustrationDate" value="<%= item.illustration_date %>" required /></label>
+                  <label>種類
+                    <select name="illustrationType">
+                      <option value="練習" <%= item.illustration_type === '練習' ? 'selected' : '' %>>練習</option>
+                      <option value="落書き" <%= item.illustration_type === '落書き' ? 'selected' : '' %>>落書き</option>
+                      <option value="本気" <%= item.illustration_type === '本気' ? 'selected' : '' %>>本気</option>
+                    </select>
+                  </label>
+                  <button type="submit">変更を保存</button>
+                </form>
+              </div>
+            <% }) %>
+          <% } %>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
