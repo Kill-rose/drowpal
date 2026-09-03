@@ -22,7 +22,7 @@ body {
 body {
   margin: 0;
   min-height: 100vh;
-  overflow: hidden;
+  overflow: auto;
   background: linear-gradient(135deg, #f7f5ff 0%, #eef8ff 100%);
   color: #1f2430;
 }
@@ -41,6 +41,142 @@ main.app-shell {
   grid-template-columns: minmax(0, 3fr) minmax(280px, 2fr);
   gap: 1rem;
   overflow: hidden;
+}
+
+nav {
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(108, 99, 255, 0.06);
+}
+
+.nav-inner {
+  width: min(1200px, calc(100% - 2rem));
+  min-height: 58px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.nav-inner strong {
+  color: var(--accent-strong);
+  font-size: 1.1rem;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.links a {
+  padding: 0.45rem 0.65rem;
+  border-radius: 10px;
+  color: #3f4152;
+}
+
+.links a:hover,
+.links a:focus-visible {
+  background: #f3f0ff;
+  color: var(--accent-strong);
+}
+
+body:not(:has(.app-shell)) main {
+  width: min(1200px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+}
+
+.hero {
+  margin-bottom: 1.25rem;
+}
+
+.hero h1 {
+  margin: 0 0 0.4rem;
+  color: #292b3a;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+body:not(:has(.app-shell)) .panel {
+  min-width: 0;
+  padding: 1.25rem;
+}
+
+body:not(:has(.app-shell)) .panel > h2 {
+  margin-top: 0;
+}
+
+body:not(:has(.app-shell)) .card {
+  padding: 1rem;
+  margin-top: 0.75rem;
+  background: #fbf8ff;
+}
+
+body:not(:has(.app-shell)) form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+body:not(:has(.app-shell)) label {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+body:not(:has(.app-shell)) input,
+body:not(:has(.app-shell)) textarea,
+body:not(:has(.app-shell)) select {
+  width: 100%;
+  min-width: 0;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  color: #1f2430;
+}
+
+body:not(:has(.app-shell)) button {
+  justify-self: start;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+}
+
+body:not(:has(.app-shell)) img.uploaded {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  object-fit: contain;
+  margin: 0.75rem 0;
+}
+
+@media (max-width: 760px) {
+  .nav-inner {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 0.75rem 0;
+  }
+
+  .links {
+    justify-content: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .main-panel,
