@@ -2,17 +2,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const palImage = document.getElementById('pal-image');
   const menuButtons = document.querySelectorAll('[data-view-target]');
   const featureViews = document.querySelectorAll('[data-view]');
-  const showFeatureView = (viewName) => {
+  const output = document.getElementById('chat-comments');
+  const showFeatureView = async (viewName) => {
     featureViews.forEach((view) => view.classList.toggle('is-active', view.dataset.view === viewName));
     menuButtons.forEach((button) => button.classList.toggle('is-active', button.dataset.viewTarget === viewName));
+    if (output) {
+      try {
+        const response = await fetch(`/api/menu-message?menu=${encodeURIComponent(viewName)}`);
+        const data = await response.json();
+        if (data.message) {
+          output.textContent = data.message;
+        }
+      } catch (error) {
+        output.textContent = 'メッセージを取得できませんでした。';
+      }
+    }
   };
 
   menuButtons.forEach((button) => {
     button.addEventListener('click', () => showFeatureView(button.dataset.viewTarget));
   });
 
+  const requestedView = new URLSearchParams(window.location.search).get('view');
+  if (requestedView && document.querySelector(`[data-view="${requestedView}"]`)) {
+    showFeatureView(requestedView);
+  }
+
   const form = document.getElementById('chat-form');
-  const output = document.getElementById('chat-comments');
   const input = document.getElementById('message');
   const chatPanel = document.querySelector('.chat-panel');
   const chatModeToggle = document.getElementById('chat-mode-toggle');

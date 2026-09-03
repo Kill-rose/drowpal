@@ -140,6 +140,22 @@ function initializeDatabase(dbPath = DB_PATH) {
           }
         });
 
+        db.run(`
+          CREATE TABLE IF NOT EXISTS character_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind TEXT NOT NULL DEFAULT 'menu',
+            key TEXT NOT NULL UNIQUE,
+            character_signature TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+          )
+        `, (err) => {
+          if (err) {
+            reject(err);
+          }
+        });
+
         db.run("ALTER TABLE characters ADD COLUMN user_name TEXT NOT NULL DEFAULT ''", () => {});
         db.run("ALTER TABLE characters ADD COLUMN interaction_style TEXT NOT NULL DEFAULT ''", () => {});
         db.run("ALTER TABLE characters ADD COLUMN profile TEXT NOT NULL DEFAULT ''", () => {});
@@ -242,6 +258,55 @@ async function getCharacter(db) {
   return character;
 }
 
+const MENU_MESSAGES = {
+  home: 'ホーム',
+  reflection: '振り返り',
+  calendar: 'カレンダー',
+  illustrations: 'イラスト',
+  settings: '設定'
+};
+
+function getCharacterSignature(character) {
+  return JSON.stringify({
+    name: character?.name || '',
+    personality: character?.personality || '',
+    style: character?.style || '',
+    userName: character?.user_name || '',
+    interactionStyle: character?.interaction_style || '',
+    profile: character?.profile || '',
+    examples: character?.examples || ''
+  });
+}
+
+function getMenuMessageFallback(character, menuKey) {
+  const menuName = MENU_MESSAGES[menuKey] || '画面';
+  return `${character?.name || 'パル'}: ${menuName}を開きました。今日も無理なく進めましょう。`;
+}
+
+async function generateMenuMessage(character, menuKey) {
+  const menuName = MENU_MESSAGES[menuKey] || '画面';
+  const fallback = getMenuMessageFallback(character, menuKey);
+  const prompt = `あなたは${character?.name || 'AIキャラクター'}です。性格は${character?.personality || '親切'}、口調は${character?.style || '自然'}です。ユーザーへの接し方は${character?.interaction_style || '寄り添う'}です。ユーザーが「${menuName}」メニューを開きました。キャラクターらしい短い一言を、日本語で1文だけ返してください。説明や名前の前置きは不要です。`;
+  const text = await callGemini(prompt);
+  return text || fallback;
+}
+
+async function getOrCreateMenuMessage(db, character, menuKey) {
+  const signature = getCharacterSignature(character);
+  const cached = await getDbRow(db, "SELECT * FROM character_messages WHERE kind = 'menu' AND key = ?", [menuKey]);
+  if (cached && cached.character_signature === signature) {
+    return cached.message;
+  }
+
+  const message = await generateMenuMessage(character, menuKey);
+  if (cached) {
+    await runDb(db, "UPDATE character_messages SET character_signature = ?, message = ?, updated_at = CURRENT_TIMESTAMP WHERE kind = 'menu' AND key = ?", [signature, message, menuKey]);
+  } else {
+    await runDb(db, "INSERT INTO character_messages (kind, key, character_signature, message) VALUES ('menu', ?, ?, ?)", [menuKey, signature, message]);
+  }
+  return message;
+}
+
 async function saveUsage(db, action, detail) {
   await runDb(db, 'INSERT INTO usage_history (action, detail) VALUES (?, ?)', [action, detail]);
 }
@@ -291,6 +356,35 @@ function getMonthDays(year, month) {
 
 function getLocalDateString(date) {
   return date.toISOString().slice(0, 10);
+}
+
+async function callGemini(prompt) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          role: 'user',
+          parts: [{ text: prompt }]
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+    const data = await response.json();
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || null;
+  } catch (error) {
+    console.error(error);
+    return null;
+  }
 }
 
 function selectExpression(message) {
@@ -359,13 +453,18 @@ app.get('/', async (req, res) => {
     const character = await getCharacter(db);
     const characterImages = await getCharacterImages(db);
     const reflections = await getDbRows(db, 'SELECT * FROM reflections ORDER BY reflection_date DESC LIMIT 5');
-    const illustrations = await getDbRows(db, 'SELECT * FROM illustrations ORDER BY uploaded_at DESC LIMIT 3');
+    const illustrations = await getDbRows(db, 'SELECT * FROM illustrations ORDER BY illustration_date DESC, uploaded_at DESC');
     const reflectionCount = await getDbRow(db, 'SELECT COUNT(*) AS count FROM reflections');
     const illustrationCount = await getDbRow(db, 'SELECT COUNT(*) AS count FROM illustrations');
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
-    const monthReflections = await getDbRows(db, 'SELECT * FROM reflections WHERE substr(reflection_date, 1, 7) = ? ORDER BY reflection_date ASC', [`${year}-${String(month + 1).padStart(2, '0')}`]);
+    const monthIllustrations = await getDbRows(db, 'SELECT * FROM illustrations WHERE substr(illustration_date, 1, 7) = ? ORDER BY uploaded_at DESC', [`${year}-${String(month + 1).padStart(2, '0')}`]);
+    const reflectionHistory = await getDbRows(db, 'SELECT reflections.*, illustrations.title, illustrations.file_name FROM reflections LEFT JOIN illustrations ON illustrations.id = reflections.illustration_id ORDER BY reflections.reflection_date DESC');
+    reflectionHistory.forEach((reflection) => {
+      reflection.evaluations = normalizeEvaluations(reflection.evaluation_data);
+    });
+    const editReflection = reflectionHistory.find((reflection) => reflection.id === Number(req.query.edit)) || null;
     res.render('index', {
       character,
       reflections,
@@ -377,7 +476,12 @@ app.get('/', async (req, res) => {
       year,
       month,
       monthData: getMonthDays(year, month),
-      calendar: buildCalendarData(monthReflections)
+      calendar: buildCalendarIllustrations(monthIllustrations),
+      reflectionHistory,
+      today: getLocalDateString(now),
+      selectedIllustrationId: editReflection?.illustration_id || Number(req.query.illustrationId) || null,
+      editReflection,
+      editReflectionJson: JSON.stringify(editReflection).replace(/</g, '\\u003c')
     });
   } catch (error) {
     console.error(error);
@@ -412,6 +516,22 @@ app.post('/chat', async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'AI応答の生成に失敗しました。' });
+  }
+});
+
+app.get('/api/menu-message', async (req, res) => {
+  try {
+    const menuKey = req.query.menu;
+    if (!Object.hasOwn(MENU_MESSAGES, menuKey)) {
+      return res.status(400).json({ error: '不正なメニューです。' });
+    }
+    const db = await getDb();
+    const character = await getCharacter(db);
+    const message = await getOrCreateMenuMessage(db, character, menuKey);
+    res.json({ message });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'メニューセリフの取得に失敗しました。' });
   }
 });
 
@@ -563,7 +683,7 @@ app.post('/illustrations', upload.single('image'), async (req, res) => {
     const illustrationType = ['練習', '落書き', '本気'].includes(req.body.illustrationType) ? req.body.illustrationType : '練習';
     await runDb(db, 'INSERT INTO illustrations (title, file_name, illustration_date, illustration_type) VALUES (?, ?, ?, ?)', [title, fileName, illustrationDate, illustrationType]);
     await saveUsage(db, 'illustration', title);
-    res.redirect('/illustrations');
+    res.redirect('/?view=illustrations');
   } catch (error) {
     console.error(error);
     res.status(500).send('アップロードに失敗しました。');

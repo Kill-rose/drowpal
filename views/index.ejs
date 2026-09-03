@@ -21,37 +21,55 @@
 
           <div class="feature-view" data-view="reflection">
             <h2>振り返り</h2>
-            <form method="post" action="/reflection" class="compact-form">
-              <label>日付<input type="date" name="reflectionDate" required /></label>
-              <label>自己評価<select name="score"><option value="1">1</option><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></label>
-              <label>描いた時間<input type="number" step="0.5" min="0" name="hours" value="1" required /></label>
-              <label>メモ<textarea name="note" rows="3" required></textarea></label>
-              <button type="submit">保存</button>
+            <form method="post" action="/reflection" id="reflection-form" class="compact-form">
+              <input type="hidden" name="redirectTo" value="home" />
+              <% if (editReflection) { %><input type="hidden" name="reflectionId" value="<%= editReflection.id %>" /><% } %>
+              <label>イラスト<select name="illustrationId" required><option value="">選択してください</option><% illustrations.forEach((item) => { %><option value="<%= item.id %>" data-date="<%= item.illustration_date %>" <%= selectedIllustrationId === item.id ? 'selected' : '' %>><%= item.illustration_date || '日付未設定' %>・<%= item.title %></option><% }); %></select></label>
+              <label>日付<input type="date" name="reflectionDate" value="<%= editReflection?.reflection_date || today %>" required /></label>
+              <fieldset class="evaluation-section"><legend>総合評価</legend><% const overallScore = editReflection?.score || 3; %><input type="hidden" name="score" value="<%= overallScore %>" /><div class="score-picker" data-score-picker><% for (let score = 1; score <= 5; score += 1) { %><button type="button" class="<%= score <= overallScore ? 'is-selected' : '' %>" data-score="<%= score %>"><%= score <= overallScore ? '●' : '○' %></button><% } %></div></fieldset>
+              <fieldset class="type-toggle-group"><legend>タイプ</legend><label class="type-toggle"><input type="checkbox" data-type="person" /> 人物</label><label class="type-toggle"><input type="checkbox" data-type="landscape" /> 風景</label></fieldset>
+              <div id="evaluation-items"></div>
+              <button type="button" class="secondary" id="add-evaluation">評価項目を追加</button>
+              <input type="hidden" name="evaluationData" id="evaluation-data" />
+              <label>所要時間（h）<input type="number" step="0.5" min="0" name="hours" value="<%= editReflection?.hours || 0 %>" /></label>
+              <label>メモ<textarea name="note" rows="4" placeholder="今日の気持ちや工夫したこと"><%= editReflection?.note || '' %></textarea></label>
+              <button type="submit"><%= editReflection ? '変更を保存' : '保存' %></button>
             </form>
+            <h3>過去の記録</h3>
+            <% if (reflectionHistory.length === 0) { %><p class="small">まだ記録がありません。</p><% } else { reflectionHistory.forEach((item) => { %><details class="card small-card"><summary><strong><%= item.reflection_date %>・<%= item.title || '未選択のイラスト' %></strong><span class="small"> 評価: <%= item.score %> / 5・<%= item.hours %>h</span></summary><% if (item.file_name) { %><img class="uploaded" src="/uploads/<%= item.file_name %>" alt="<%= item.title %>" /><% } %><p><%= item.note %></p><a href="/?view=reflection&edit=<%= item.id %>">編集</a></details><% }); } %>
           </div>
 
           <div class="feature-view" data-view="calendar">
             <h2><%= year %>年 <%= month + 1 %>月</h2>
-            <div class="calendar-grid"><% ['日','月','火','水','木','金','土'].forEach((dow) => { %><div class="calendar-day calendar-heading"><strong><%= dow %></strong></div><% }); %><% for (let blank = 0; blank < monthData.firstDay.getDay(); blank += 1) { %><div class="calendar-day is-empty"></div><% } %><% monthData.days.forEach((day) => { const key = day.toISOString().slice(0, 10); %><div class="calendar-day"><div class="date"><%= day.getDate() %></div><% if (calendar[key]) { %><div class="small">記録あり</div><% } %></div><% }); %></div>
+            <div class="calendar-grid"><% ['日','月','火','水','木','金','土'].forEach((dow) => { %><div class="calendar-day calendar-heading"><strong><%= dow %></strong></div><% }); %><% for (let blank = 0; blank < monthData.firstDay.getDay(); blank += 1) { %><div class="calendar-day is-empty"></div><% } %><% monthData.days.forEach((day) => { const key = day.toISOString().slice(0, 10); %><div class="calendar-day"><div class="date"><%= day.getDate() %></div><% if (calendar[key]) { %><a href="/?view=reflection&illustrationId=<%= calendar[key].id %>" class="calendar-illustration"><img src="/uploads/<%= calendar[key].file_name %>" alt="<%= calendar[key].title %>" /></a><% } %></div><% }); %></div>
           </div>
 
           <div class="feature-view" data-view="illustrations">
             <h2>イラスト</h2>
             <form method="post" action="/illustrations" enctype="multipart/form-data" class="compact-form">
               <label>タイトル<input type="text" name="title" placeholder="今日の一枚" /></label>
+              <label>日付<input type="date" name="illustrationDate" value="<%= today %>" required /></label>
+              <label>種類<select name="illustrationType"><option value="練習">練習</option><option value="落書き">落書き</option><option value="本気">本気</option></select></label>
               <label>画像<input type="file" name="image" accept="image/png,image/jpeg,image/webp" required /></label>
               <button type="submit">保存</button>
             </form>
-            <div class="illustration-grid"><% illustrations.forEach((item) => { %><div class="card small-card"><strong><%= item.title %></strong><img class="uploaded" src="/uploads/<%= item.file_name %>" alt="<%= item.title %>" /></div><% }); %></div>
+            <div class="illustration-grid"><% illustrations.forEach((item) => { %><div class="card small-card"><strong><%= item.title %></strong><div class="small"><%= item.illustration_date || '日付未設定' %>・<%= item.illustration_type || '練習' %></div><img class="uploaded" src="/uploads/<%= item.file_name %>" alt="<%= item.title %>" /></div><% }); %></div>
           </div>
 
           <div class="feature-view" data-view="settings">
             <h2>設定</h2>
-            <form method="post" action="/character" class="compact-form">
-              <label>名前<input type="text" name="name" value="<%= character?.name || '' %>" required /></label>
-              <label>性格<input type="text" name="personality" value="<%= character?.personality || '' %>" required /></label>
-              <label>口調<input type="text" name="style" value="<%= character?.style || '' %>" required /></label>
-              <label>挨拶<textarea name="greeting" rows="3" required><%= character?.greeting || '' %></textarea></label>
+            <form method="post" action="/character" enctype="multipart/form-data" class="compact-form">
+              <label>名前<input type="text" name="name" maxlength="10" value="<%= character?.name || '' %>" required /></label>
+              <label>性格<input type="text" name="personality" list="personality-presets" maxlength="100" value="<%= character?.personality || '' %>" required /></label>
+              <label>口調<input type="text" name="style" list="style-presets" maxlength="100" value="<%= character?.style || '' %>" required /></label>
+              <label>ユーザーの呼び方<input type="text" name="userName" maxlength="10" value="<%= character?.user_name || '' %>" required /></label>
+              <label>ユーザーへの接し方<input type="text" name="interactionStyle" list="interaction-presets" maxlength="100" value="<%= character?.interaction_style || '' %>" required /></label>
+              <label>他プロフィール<textarea name="profile" rows="3" maxlength="1000"><%= character?.profile || '' %></textarea></label>
+              <label>出力例（最大9件・各300文字まで、任意）<% const exampleValues = character?.examplesList || []; %><% for (let i = 0; i < 9; i += 1) { %><textarea name="examples" rows="2" maxlength="300" placeholder="出力例 <%= i + 1 %>"><%= exampleValues[i] || '' %></textarea><% } %></label>
+              <fieldset class="pal-images-fieldset"><legend>パル画像</legend><p class="small">通常画像だけでも動作します。未登録の表情はアセット画像を表示します。</p><div class="pal-image-grid"><% characterImages.forEach((image) => { %><label class="pal-image-option"><span><%= image.label %></span><img src="<%= image.src %>" alt="<%= image.label %>のプレビュー" /><input type="file" name="palImage_<%= image.key %>" accept="image/png" /></label><% }); %></div></fieldset>
+              <datalist id="personality-presets"><% ['テンション高め、絵文字・擬音多用、褒め言葉もリアクションも大きい', '落ち着いた口調、感情表現は控えめ、簡潔に要点を伝える', 'どこか抜けている、たまに的外れなコメントを挟む、親しみやすさ重視', '真面目で丁寧、論理的にアドバイスする、少し堅め', '距離感が近い、ユーザーに頼るような発言も混じる、可愛らしい口調'].forEach((preset) => { %><option value="<%= preset %>"></option><% }); %></datalist>
+              <datalist id="style-presets"><% ['「～だ」「～だろ」の男性標準口調', '「～よ」「～ね」の女性標準口調', '「～だよ」「～だね」の落ち着いた柔和口調', '「～だよ」「～だね」の元気で幼い子供口調', '敬語口調'].forEach((preset) => { %><option value="<%= preset %>"></option><% }); %></datalist>
+              <datalist id="interaction-presets"><% ['問題点を率直に指摘、改善点を具体的かつ妥協なく伝える。褒めは最小限', 'まず良い点を見つけて褒める、指摘はやわらかい言い回しで包む', '感情を交えず、事実ベースで淡々と分析・助言する', '「一緒に頑張ろう」というスタンス、共感重視、指摘より寄り添いが多い', '基本的に褒めて自己肯定感を上げる方向、指摘はごく控えめか任意'].forEach((preset) => { %><option value="<%= preset %>"></option><% }); %></datalist>
               <button type="submit">設定を保存</button>
             </form>
             <form method="post" action="/reset" class="reset-form"><button type="submit" class="danger-button">全てリセット</button></form>
@@ -88,6 +106,8 @@
     </main>
 
     <script>window.palImages = <%- palImagesJson %>;</script>
+    <script>window.reflectionDraft = null;</script>
     <script src="/app.js"></script>
+    <script src="/reflection.js"></script>
   </body>
 </html>
